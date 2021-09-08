@@ -1,0 +1,40 @@
+{
+  "name": "carta-telemetry",
+  "version": "0.0.1",
+  "description": "Telemetry server for CARTA",
+  "main": "dist/index.js",
+  "bin": {
+    "carta-controller": "dist/carta-telemetry"
+  },
+  "scripts": {
+    "start": "npx ts-node src/index.ts",
+    "test": "npx ts-node src/index.ts --test",
+    "reformat": "npx prettier --write ./src",
+    "checkformat": "npx prettier --check ./src",
+    "prepare": "npx tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CARTAvis/carta-telemetry.git"
+  },
+  "author": "Angus Comrie",
+  "license": "GPL",
+  "bugs": {
+    "url": "https://github.com/CARTAvis/carta-telemetry/issues"
+  },
+  "homepage": "https://github.com/CARTAvis/carta-telemetry#readme",
+  "devDependencies": {
+    "@types/mongodb": "^4.0.7",
+    "@types/node": "^16.7.13",
+    "prettier": "^2.3.2",
+    "ts-node": "^10.2.1",
+    "typescript": "^4.4.2"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "express-bearer-token": "^2.4.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongodb": "^4.1.1"
+  }
+}
