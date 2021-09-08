@@ -44,11 +44,11 @@ let userDataCollection: Collection;
 
 export async function initDB() {
     try {
-        const client = await MongoClient.connect(config.databaseUri);
-        const db = await client.db(config.databaseName);
+        const client = await MongoClient.connect(config.dbUri);
+        const db = await client.db(config.dbName);
         usageDataCollection = await createOrGetCollection(db, "usage");
         userDataCollection = await createOrGetCollection(db, "user");
-        console.log(`Connected to MongoDB server ${config.databaseUri} and database ${config.databaseName}`);
+        console.log(`Connected to MongoDB server ${config.dbUri} and database ${config.dbName}`);
     } catch (err) {
         verboseError(err);
         console.error("Error connecting to database");
@@ -56,8 +56,8 @@ export async function initDB() {
     }
 }
 
-const publicKey = fs.readFileSync(config.publicKeyLocation);
-const privateKey = fs.readFileSync(config.privateKeyLocation);
+const publicKey = fs.readFileSync(config.publicKey);
+const privateKey = fs.readFileSync(config.privateKey);
 
 export function verifyToken(tokenString: string): string | undefined {
     const tokenJson: any = jwt.verify(tokenString, publicKey);
@@ -69,18 +69,9 @@ export function verifyToken(tokenString: string): string | undefined {
 
 let tokenHandler: RequestHandler = (req, res) => {
     try {
-        const uuid = uuidv1();
-        const token = jwt.sign(
-            {
-                uuid,
-                iss: "carta-telemetry"
-            },
-            privateKey
-        );
-        return res.json({
-            token,
-            token_type: "bearer"
-        });
+        const tokenData = {uuid: uuidv1(), iss: "carta-telemetry"};
+        const token = jwt.sign(tokenData, privateKey, {algorithm: "RS256"});
+        return res.json({token, token_type: "bearer"});
     } catch (err) {
         verboseError(err);
         console.error("Problem signinig token");

@@ -2,38 +2,47 @@ import * as yargs from "yargs";
 
 interface CommandLineOptions {
     [x: string]: unknown;
+
     verbose: boolean;
     port: number;
-    databaseUri: string;
-    databaseName: string;
-    publicKeyLocation: string;
-    privateKeyLocation: string;
+    dbUri: string;
+    dbName: string;
+    publicKey: string;
+    privateKey: string;
 }
+
+const helpOutputMaxSize = 140;
 
 export const config = yargs.options({
     verbose: {
+        description: "Show verbose output",
         type: "boolean",
         alias: "v"
     },
     port: {
+        description: "HTTP port to listen on",
         type: "number",
         alias: "p",
         default: 8002
     },
-    databaseUri: {
+    dbUri: {
+        description: "MongoDB server URI",
         type: "string",
         default: "mongodb://localhost:27017"
     },
-    databaseName: {
+    dbName: {
+        description: "MongoDB database name",
         type: "string",
         default: "carta-telemetry"
     },
-    publicKeyLocation: {
+    publicKey: {
+        description: "Path to RSA256 public key for verifying JWTs",
         type: "string",
         default: "/etc/carta/telemetry/key_public.pem"
     },
-    privateKeyLocation: {
+    privateKey: {
+        description: "Path to RSA256 private key for signing JWTs",
         type: "string",
         default: "/etc/carta/telemetry/key_private.pem"
     }
-}).argv as CommandLineOptions;
+}).wrap(Math.min(yargs.terminalWidth(), helpOutputMaxSize)).argv as CommandLineOptions;
