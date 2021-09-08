@@ -18,17 +18,6 @@ app.use(bodyParser.json());
 app.use(bearerToken());
 app.use(cors());
 
-// Simplified error handling
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    err.statusCode = err.statusCode || 500;
-    err.status = err.status || "error";
-
-    res.status(err.statusCode).json({
-        status: err.status,
-        message: err.message
-    });
-});
-
 async function createOrGetCollection(db: Db, collectionName: string) {
     const collectionExists = await db.listCollections({name: collectionName}, {nameOnly: true}).hasNext();
     if (collectionExists) {
@@ -59,7 +48,26 @@ export async function initDB() {
 const publicKey = fs.readFileSync(config.publicKey);
 const privateKey = fs.readFileSync(config.privateKey);
 
-export function verifyToken(tokenString: string): string | undefined {
+let authGuard: RequestHandler = (req, res, next) => {
+    const tokenString = req.token;
+    if (tokenString) {
+        try {
+            const uuid = verifyToken(tokenString);
+            if (!uuid) {
+                next({statusCode: 401, message: "Not authorized"});
+            } else {
+                req.token = uuid;
+                next();
+            }
+        } catch (err: any) {
+            next({statusCode: 400, message: err.message});
+        }
+    } else {
+        next({statusCode: 401, message: "Not authorized"});
+    }
+};
+
+function verifyToken(tokenString: string): string | undefined {
     const tokenJson: any = jwt.verify(tokenString, publicKey);
     if (tokenJson && tokenJson.iss === "carta-telemetry" && tokenJson.uuid) {
         return tokenJson.uuid;
@@ -74,12 +82,41 @@ let tokenHandler: RequestHandler = (req, res) => {
         return res.json({token, token_type: "bearer"});
     } catch (err) {
         verboseError(err);
-        console.error("Problem signinig token");
-        res.status(500);
+        console.error("Problem signing token");
+        res.status(500).send();
+    }
+};
+
+let submitHandler: RequestHandler = (req, res) => {
+    console.log(req.token);
+    return res.status(501).send();
+};
+
+let checkHandler: RequestHandler = (req, res, next) => {
+    if (req.token) {
+        res.json({
+            success: true,
+            uuid: req.token
+        });
+    } else {
+        next({statusCode: 401, message: "Not authorized"});
     }
 };
 
 app.get("/token", noCache, tokenHandler);
+app.get("/checkId", authGuard, checkHandler);
+app.post("/submit", authGuard, submitHandler);
+
+// Simplified error handling
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    err.statusCode = err.statusCode || 500;
+    err.status = err.status || "error";
+
+    res.status(err.statusCode).json({
+        status: err.status,
+        message: err.message
+    });
+});
 
 async function init() {
     await initDB();
