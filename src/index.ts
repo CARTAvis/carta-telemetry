@@ -8,42 +8,17 @@ import * as chalk from "chalk";
 import * as jwt from "jsonwebtoken";
 import {RequestHandler} from "express";
 import {v1 as uuidv1} from "uuid";
-import {noCache, verboseError} from "./util";
-import {config} from "./config";
-import {Collection, Db, MongoClient} from "mongodb";
+import {noCache, verboseError} from "./Util";
+import {config} from "./Config";
+import {LogMessage, TelemetryMessage} from "./Models";
+import {initDB} from "./Database";
+import * as moment from "moment";
 
 let app = express();
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(bearerToken());
 app.use(cors());
-
-async function createOrGetCollection(db: Db, collectionName: string) {
-    const collectionExists = await db.listCollections({name: collectionName}, {nameOnly: true}).hasNext();
-    if (collectionExists) {
-        return db.collection(collectionName);
-    } else {
-        console.log(`Creating collection ${collectionName}`);
-        return db.createCollection(collectionName);
-    }
-}
-
-let usageDataCollection: Collection;
-let userDataCollection: Collection;
-
-export async function initDB() {
-    try {
-        const client = await MongoClient.connect(config.dbUri);
-        const db = await client.db(config.dbName);
-        usageDataCollection = await createOrGetCollection(db, "usage");
-        userDataCollection = await createOrGetCollection(db, "user");
-        console.log(`Connected to MongoDB server ${config.dbUri} and database ${config.dbName}`);
-    } catch (err) {
-        verboseError(err);
-        console.error("Error connecting to database");
-        process.exit(1);
-    }
-}
 
 const publicKey = fs.readFileSync(config.publicKey);
 const privateKey = fs.readFileSync(config.privateKey);
@@ -68,39 +43,52 @@ let authGuard: RequestHandler = (req, res, next) => {
 };
 
 function verifyToken(tokenString: string): string | undefined {
-    const tokenJson: any = jwt.verify(tokenString, publicKey);
+    const tokenJson: any = jwt.verify(tokenString, publicKey, {algorithms: ["RS256"]});
     if (tokenJson && tokenJson.iss === "carta-telemetry" && tokenJson.uuid) {
         return tokenJson.uuid;
     }
     return undefined;
 }
 
-let tokenHandler: RequestHandler = (req, res) => {
+let tokenHandler: RequestHandler = (req, res, next) => {
     try {
         const tokenData = {uuid: uuidv1(), iss: "carta-telemetry"};
         const token = jwt.sign(tokenData, privateKey, {algorithm: "RS256"});
         return res.json({token, token_type: "bearer"});
     } catch (err) {
         verboseError(err);
-        console.error("Problem signing token");
-        res.status(500).send();
+        next({statusCode: 500, message: "Problem signing token"});
     }
-};
-
-let submitHandler: RequestHandler = (req, res) => {
-    console.log(req.token);
-    return res.status(501).send();
 };
 
 let checkHandler: RequestHandler = (req, res, next) => {
-    if (req.token) {
-        res.json({
-            success: true,
-            uuid: req.token
-        });
-    } else {
-        next({statusCode: 401, message: "Not authorized"});
+    if (!req.token) {
+        return next({statusCode: 401, message: "Not authorized"});
     }
+
+    res.json({
+        success: true,
+        uuid: req.token
+    });
+};
+
+let submitHandler: RequestHandler = (req, res, next) => {
+    if (!req.token) {
+        return next({statusCode: 401, message: "Not authorized"});
+    }
+
+    const entries = req.body as TelemetryMessage[];
+
+    if (!entries || !Array.isArray(entries) || !entries.length) {
+        return next({statusCode: 400, message: "Malformed submission"});
+    }
+    console.log(`Received ${entries.length} telemetry entries from ${req.token} [${req.ip}]`);
+    // TODO: insert into database itself
+    for (const entry of entries) {
+        LogMessage(entry);
+    }
+    console.log();
+    res.json({success: true, uuid: req.token});
 };
 
 app.get("/token", noCache, tokenHandler);

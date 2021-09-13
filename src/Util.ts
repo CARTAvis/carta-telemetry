@@ -1,5 +1,5 @@
 import * as express from "express";
-import {config} from "./config";
+import {config} from "./Config";
 
 // Delay for the specified number of milliseconds
 export async function delay(delay: number) {
