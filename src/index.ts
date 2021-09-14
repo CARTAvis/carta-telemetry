@@ -100,9 +100,9 @@ let submitHandler: RequestHandler = async (req, res, next) => {
     res.json({success: true, uuid: req.token});
 };
 
-app.get("/token", noCache, tokenHandler);
-app.get("/checkId", authGuard, checkHandler);
-app.post("/submit", authGuard, submitHandler);
+app.get("/api/token", noCache, tokenHandler);
+app.get("/api/checkId", authGuard, checkHandler);
+app.post("/api/submit", authGuard, submitHandler);
 
 // Simplified error handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
