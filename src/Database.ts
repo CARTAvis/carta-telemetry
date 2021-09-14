@@ -1,6 +1,10 @@
 import {Collection, Db, MongoClient} from "mongodb";
+import {LRUMap} from "mnemonist";
 import {config} from "./Config";
 import {verboseError} from "./Util";
+import {LogMessage, TelemetryMessage} from "./Models";
+
+const messageCache = new LRUMap<string, TelemetryMessage>(1000);
 
 export async function createOrGetCollection(db: Db, collectionName: string) {
     const collectionExists = await db.listCollections({name: collectionName}, {nameOnly: true}).hasNext();
@@ -27,4 +31,15 @@ export async function initDB() {
         console.error("Error connecting to database");
         process.exit(1);
     }
+}
+
+export async function addToDb(entry: TelemetryMessage) {
+    if (messageCache.has(entry.id)) {
+        console.debug(`Skipping stale entry ${entry.id}`);
+        return;
+    }
+
+    // TODO: Add to MongoDB itself
+    messageCache.set(entry.id, entry);
+    LogMessage(entry);
 }

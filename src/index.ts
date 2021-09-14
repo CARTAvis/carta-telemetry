@@ -10,13 +10,12 @@ import {RequestHandler} from "express";
 import {v1 as uuidv1} from "uuid";
 import {noCache, verboseError} from "./Util";
 import {config} from "./Config";
-import {LogMessage, TelemetryMessage} from "./Models";
-import {initDB} from "./Database";
-import * as moment from "moment";
+import {TelemetryMessage} from "./Models";
+import {addToDb, initDB} from "./Database";
 
 let app = express();
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: "5mb"}));
 app.use(bearerToken());
 app.use(cors());
 
@@ -72,7 +71,7 @@ let checkHandler: RequestHandler = (req, res, next) => {
     });
 };
 
-let submitHandler: RequestHandler = (req, res, next) => {
+let submitHandler: RequestHandler = async (req, res, next) => {
     if (!req.token) {
         return next({statusCode: 401, message: "Not authorized"});
     }
@@ -83,9 +82,19 @@ let submitHandler: RequestHandler = (req, res, next) => {
         return next({statusCode: 400, message: "Malformed submission"});
     }
     console.log(`Received ${entries.length} telemetry entries from ${req.token} [${req.ip}]`);
-    // TODO: insert into database itself
-    for (const entry of entries) {
-        LogMessage(entry);
+
+    try {
+        for (const entry of entries) {
+            // Validate entry
+            if (!entry.id || !entry.version || !entry.action || !entry.sessionId || !entry.timestamp) {
+                continue;
+            }
+
+            await addToDb(entry);
+        }
+    } catch (err) {
+        verboseError(err);
+        return next({statusCode: 500, message: "Malformed submission"});
     }
     console.log();
     res.json({success: true, uuid: req.token});
