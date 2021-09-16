@@ -76,12 +76,13 @@ let submitHandler: RequestHandler = async (req, res, next) => {
         return next({statusCode: 401, message: "Not authorized"});
     }
 
+    const ipAddress = req.header("x-forwarded-for") ?? req.ip;
     const entries = req.body as TelemetryMessage[];
 
     if (!entries || !Array.isArray(entries) || !entries.length) {
         return next({statusCode: 400, message: "Malformed submission"});
     }
-    console.log(`Received ${entries.length} telemetry entries from ${req.token} [${req.ip}]`);
+    console.log(`Received ${entries.length} telemetry entries from ${req.token} [${ipAddress}]`);
 
     try {
         for (const entry of entries) {
