@@ -25,7 +25,7 @@ try {
     if (fs.existsSync(config.ipBlacklist)) {
         const blacklist = JSON.parse(fs.readFileSync(config.ipBlacklist, "utf8")) as Array<string>;
         if (blacklist && Array.isArray(blacklist) && blacklist.length) {
-            app.use(IpFilter(blacklist, {detectIp: detectIp, mode: "deny"}));
+            app.use(IpFilter(blacklist, {detectIp: detectIp, mode: "deny", log: config.verbose}));
         }
     }
 } catch (err) {
