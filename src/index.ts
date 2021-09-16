@@ -6,6 +6,7 @@ import * as fs from "fs";
 import * as cors from "cors";
 import * as chalk from "chalk";
 import * as jwt from "jsonwebtoken";
+import {lookup} from "geoip-lite";
 import {RequestHandler} from "express";
 import {v1 as uuidv1} from "uuid";
 import {noCache, verboseError} from "./Util";
@@ -77,12 +78,36 @@ let submitHandler: RequestHandler = async (req, res, next) => {
     }
 
     const ipAddress = req.header("x-forwarded-for") ?? req.ip;
+    const ipRegex = new RegExp(/^(?!0)(?!.*\.$)((1?\d?\d|25[0-5]|2[0-4]\d)(\.|$)){4}$/);
+
+    let countryCode: string;
+    let regionCode: string;
+    let geoString: string = "";
+
+    if (ipAddress && ipRegex.test(ipAddress)) {
+        console.log(ipAddress);
+        const geoInfo = lookup(ipAddress);
+        countryCode = geoInfo?.country ?? "";
+        regionCode = geoInfo?.region ?? "";
+        if (countryCode) {
+            if (regionCode) {
+                geoString = `${countryCode} ${regionCode}`;
+            } else {
+                geoString = countryCode;
+            }
+        }
+    }
+
+    if (!geoString) {
+        geoString = "unknown_location";
+    }
+
     const entries = req.body as TelemetryMessage[];
 
     if (!entries || !Array.isArray(entries) || !entries.length) {
         return next({statusCode: 400, message: "Malformed submission"});
     }
-    console.log(`Received ${entries.length} telemetry entries from ${req.token} [${ipAddress}]`);
+    console.log(`Received ${entries.length} telemetry entries from ${req.token} [${ipAddress} (${geoString})]`);
 
     try {
         for (const entry of entries) {
