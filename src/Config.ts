@@ -9,6 +9,7 @@ interface CommandLineOptions {
     dbName: string;
     publicKey: string;
     privateKey: string;
+    ipBlacklist: string;
 }
 
 const helpOutputMaxSize = 140;
@@ -45,6 +46,11 @@ export const config = yargs
             description: "Path to RSA256 private key for signing JWTs",
             type: "string",
             default: "/etc/carta/telemetry/key_private.pem"
+        },
+        ipBlacklist: {
+            description: "Path to IP blacklist JSON file",
+            type: "string",
+            default: "/etc/carta/telemetry/blacklist.json"
         }
     })
     .wrap(Math.min(yargs.terminalWidth(), helpOutputMaxSize)).argv as CommandLineOptions;

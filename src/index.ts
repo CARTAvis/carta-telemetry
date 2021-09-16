@@ -6,10 +6,11 @@ import * as fs from "fs";
 import * as cors from "cors";
 import * as chalk from "chalk";
 import * as jwt from "jsonwebtoken";
+import {IpFilter} from "express-ipfilter";
 import {lookup} from "geoip-lite";
 import {RequestHandler} from "express";
 import {v1 as uuidv1} from "uuid";
-import {noCache, verboseError} from "./Util";
+import {detectIp, noCache, verboseError} from "./Util";
 import {config} from "./Config";
 import {TelemetryMessage} from "./Models";
 import {addToDb, initDB} from "./Database";
@@ -19,6 +20,18 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json({limit: "5mb"}));
 app.use(bearerToken());
 app.use(cors());
+
+try {
+    if (fs.existsSync(config.ipBlacklist)) {
+        const blacklist = JSON.parse(fs.readFileSync(config.ipBlacklist, "utf8")) as Array<string>;
+        if (blacklist && Array.isArray(blacklist) && blacklist.length) {
+            app.use(IpFilter(blacklist, {detectIp: detectIp, mode: "deny"}));
+        }
+    }
+} catch (err) {
+    verboseError(err);
+    console.warn("Could not read IP blacklist");
+}
 
 const publicKey = fs.readFileSync(config.publicKey);
 const privateKey = fs.readFileSync(config.privateKey);
@@ -77,7 +90,7 @@ let submitHandler: RequestHandler = async (req, res, next) => {
         return next({statusCode: 401, message: "Not authorized"});
     }
 
-    const ipAddress = req.header("x-forwarded-for") ?? req.ip;
+    const ipAddress = detectIp(req);
     const ipRegex = new RegExp(/^(?!0)(?!.*\.$)((1?\d?\d|25[0-5]|2[0-4]\d)(\.|$)){4}$/);
 
     let countryCode: string;
@@ -85,7 +98,6 @@ let submitHandler: RequestHandler = async (req, res, next) => {
     let geoString: string = "";
 
     if (ipAddress && ipRegex.test(ipAddress)) {
-        console.log(ipAddress);
         const geoInfo = lookup(ipAddress);
         countryCode = geoInfo?.country ?? "";
         regionCode = geoInfo?.region ?? "";
