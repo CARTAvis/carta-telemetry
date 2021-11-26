@@ -135,7 +135,7 @@ let submitHandler: RequestHandler = async (req, res, next) => {
                 continue;
             }
 
-            await addToDb(entry);
+            await addToDb(entry, req.token);
         }
     } catch (err) {
         verboseError(err);
