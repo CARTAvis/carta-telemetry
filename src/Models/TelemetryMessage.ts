@@ -24,6 +24,8 @@ export interface TelemetryMessage {
     action: TelemetryAction;
     version: string;
     details?: any;
+    regionCode?: string;
+    countryCode?: string;
 }
 
 export function LogMessage(message: TelemetryMessage) {

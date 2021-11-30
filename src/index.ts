@@ -100,9 +100,9 @@ let submitHandler: RequestHandler = async (req, res, next) => {
     const ipAddress = detectIp(req);
     const ipRegex = new RegExp(/^(?!0)(?!.*\.$)((1?\d?\d|25[0-5]|2[0-4]\d)(\.|$)){4}$/);
 
-    let countryCode: string;
-    let regionCode: string;
-    let geoString: string = "";
+    let countryCode = "";
+    let regionCode = "";
+    let geoString = "";
 
     if (ipAddress && ipRegex.test(ipAddress)) {
         const geoInfo = lookup(ipAddress);
@@ -131,9 +131,13 @@ let submitHandler: RequestHandler = async (req, res, next) => {
     try {
         for (const entry of entries) {
             // Validate entry
-            if (!entry.id || !entry.version || !entry.action || !entry.sessionId || !entry.timestamp) {
+            if (!entry.id || !entry.version || !entry.action || !entry.sessionId || !isFinite(entry.timestamp)) {
                 continue;
             }
+
+            // Add geo-location info to entry
+            entry.countryCode = countryCode;
+            entry.regionCode = regionCode;
 
             await addToDb(entry, req.token);
         }

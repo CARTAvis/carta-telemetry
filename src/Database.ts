@@ -25,20 +25,20 @@ async function updateIndex(collection: Collection, key: string, direction: Index
     }
 }
 
-let usageData: Collection;
-let users: Collection;
-let sessions: Collection;
+let usageDataCollection: Collection;
+let usersCollection: Collection;
+let sessionsCollection: Collection;
 
 export async function initDB() {
     try {
         const client = await MongoClient.connect(config.dbUri);
         const db = await client.db(config.dbName);
-        usageData = await createOrGetCollection(db, "usage");
-        users = await createOrGetCollection(db, "users");
-        await updateIndex(users, "uuid");
-        sessions = await createOrGetCollection(db, "sessions");
-        await updateIndex(sessions, "id");
-        await updateIndex(sessions, "userId", 1, false);
+        usageDataCollection = await createOrGetCollection(db, "usage");
+        usersCollection = await createOrGetCollection(db, "users");
+        await updateIndex(usersCollection, "uuid");
+        sessionsCollection = await createOrGetCollection(db, "sessions");
+        await updateIndex(sessionsCollection, "id");
+        await updateIndex(sessionsCollection, "userId", 1, false);
 
         console.log(`Connected to MongoDB server ${config.dbUri} and database ${config.dbName}`);
     } catch (err) {
@@ -54,17 +54,65 @@ export async function addToDb(entry: TelemetryMessage, userId: string) {
         return;
     }
 
-    // TODO: Add to MongoDB itself
+    if (!entry.sessionId) {
+        return;
+    }
+
+    // Add user to DB if they don't already exist
+    try {
+        const updateDoc = {uuid: userId} as any;
+        if (entry.action === TelemetryAction.OptOut) {
+            updateDoc.optOut = true;
+        } else if (entry.action === TelemetryAction.OptIn) {
+            updateDoc.optOut = false;
+        }
+
+        if (entry.countryCode) {
+            updateDoc.countryCode = entry.countryCode;
+        }
+        if (entry.regionCode) {
+            updateDoc.regionCode = entry.regionCode;
+        }
+
+        await usersCollection.updateOne({uuid: userId}, {$set: updateDoc}, {upsert: true});
+    } catch (err) {
+        console.warn(err);
+    }
 
     if (entry.action === TelemetryAction.Connection) {
         try {
             const session = new Session(entry, userId);
-            await sessions.insertOne(session);
+            await sessionsCollection.insertOne(session);
         } catch (err) {
             console.warn(err);
         }
+    } else if (entry.action === TelemetryAction.EndSession) {
+        try {
+            const existingSession = (await sessionsCollection.findOne({id: entry.sessionId})) as Session;
+            if (!existingSession) {
+                console.warn(`Cannot find existing session ${entry.sessionId}`);
+                return;
+            }
+
+            // Update document with end timestamp
+            const duration = entry.timestamp - existingSession.startTime;
+            if (duration >= 0) {
+                await sessionsCollection.updateOne(
+                    {id: entry.sessionId},
+                    {
+                        $set: {
+                            endTime: entry.timestamp,
+                            duration: duration
+                        }
+                    }
+                );
+            }
+        } catch (err) {
+            console.warn(err);
+        }
+    } else {
+        LogMessage(entry);
     }
 
     messageCache.set(entry.id, true);
-    LogMessage(entry);
 }
