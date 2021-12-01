@@ -5,7 +5,7 @@ import {verboseError} from "./Util";
 import {PrintMessage, TelemetryAction, TelemetryMessage} from "./Models";
 import {Session} from "./Models/Session";
 
-const messageCache = new LRUMap<string, boolean>(10000);
+const messageCache = new LRUMap<string, boolean>(100000);
 
 export async function createOrGetCollection(db: Db, collectionName: string) {
     const collectionExists = await db.listCollections({name: collectionName}, {nameOnly: true}).hasNext();
@@ -58,6 +58,7 @@ export async function addToDb(entry: TelemetryMessage, userId: string, logEntry:
         console.debug(`Skipping stale entry ${entry.id}`);
         return;
     }
+    messageCache.set(entry.id, true);
 
     if (!entry.sessionId) {
         return;
@@ -127,5 +128,5 @@ export async function addToDb(entry: TelemetryMessage, userId: string, logEntry:
         PrintMessage(entry);
     }
 
-    messageCache.set(entry.id, true);
+
 }
