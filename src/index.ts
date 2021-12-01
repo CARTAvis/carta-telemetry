@@ -3,6 +3,7 @@ import * as bodyParser from "body-parser";
 import * as bearerToken from "express-bearer-token";
 import * as http from "http";
 import * as fs from "fs";
+import * as crypto from "crypto";
 import * as cors from "cors";
 import * as chalk from "chalk";
 import * as jwt from "jsonwebtoken";
@@ -20,6 +21,11 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json({limit: "5mb"}));
 app.use(bearerToken());
 app.use(cors());
+
+const hashFunction = crypto.createHash("sha1");
+if (config.logOutput) {
+    console.log("Storing all entries in db");
+}
 
 try {
     if (fs.existsSync(config.ipBlacklist)) {
@@ -103,7 +109,7 @@ let submitHandler: RequestHandler = async (req, res, next) => {
     let countryCode = "";
     let regionCode = "";
     let geoString = "";
-
+    let ipHash = "";
     if (ipAddress && ipRegex.test(ipAddress)) {
         const geoInfo = lookup(ipAddress);
         countryCode = geoInfo?.country ?? "";
@@ -115,6 +121,7 @@ let submitHandler: RequestHandler = async (req, res, next) => {
                 geoString = countryCode;
             }
         }
+        ipHash = hashFunction.copy().update(ipAddress).digest("hex");
     }
 
     if (!geoString) {
@@ -136,10 +143,17 @@ let submitHandler: RequestHandler = async (req, res, next) => {
             }
 
             // Add geo-location info to entry
-            entry.countryCode = countryCode;
-            entry.regionCode = regionCode;
+            if (countryCode) {
+                entry.countryCode = countryCode;
+            }
+            if (regionCode) {
+                entry.regionCode = regionCode;
+            }
+            if (ipHash) {
+                entry.ipHash = ipHash;
+            }
 
-            await addToDb(entry, req.token);
+            await addToDb(entry, req.token, config.logOutput);
         }
     } catch (err) {
         verboseError(err);

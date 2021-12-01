@@ -2,7 +2,7 @@ import {Collection, Db, IndexDirection, MongoClient} from "mongodb";
 import {LRUMap} from "mnemonist";
 import {config} from "./Config";
 import {verboseError} from "./Util";
-import {LogMessage, TelemetryAction, TelemetryMessage} from "./Models";
+import {PrintMessage, TelemetryAction, TelemetryMessage} from "./Models";
 import {Session} from "./Models/Session";
 
 const messageCache = new LRUMap<string, boolean>(10000);
@@ -18,7 +18,7 @@ export async function createOrGetCollection(db: Db, collectionName: string) {
 }
 
 async function updateIndex(collection: Collection, key: string, direction: IndexDirection = 1, unique: boolean = true) {
-    const hasIndex = await collection.indexExists("username");
+    const hasIndex = await collection.indexExists(key);
     if (!hasIndex) {
         await collection.createIndex([[key, direction]], {name: key, unique});
         console.log(`Created ${key} index for collection ${collection.collectionName}`);
@@ -28,6 +28,7 @@ async function updateIndex(collection: Collection, key: string, direction: Index
 let usageDataCollection: Collection;
 let usersCollection: Collection;
 let sessionsCollection: Collection;
+let entriesCollection: Collection;
 
 export async function initDB() {
     try {
@@ -35,10 +36,14 @@ export async function initDB() {
         const db = await client.db(config.dbName);
         usageDataCollection = await createOrGetCollection(db, "usage");
         usersCollection = await createOrGetCollection(db, "users");
+        entriesCollection = await createOrGetCollection(db, "entries");
         await updateIndex(usersCollection, "uuid");
         sessionsCollection = await createOrGetCollection(db, "sessions");
         await updateIndex(sessionsCollection, "id");
         await updateIndex(sessionsCollection, "userId", 1, false);
+        await updateIndex(entriesCollection, "id");
+        await updateIndex(entriesCollection, "userId", 1, false);
+        await updateIndex(entriesCollection, "ipHash", 1, false);
 
         console.log(`Connected to MongoDB server ${config.dbUri} and database ${config.dbName}`);
     } catch (err) {
@@ -48,7 +53,7 @@ export async function initDB() {
     }
 }
 
-export async function addToDb(entry: TelemetryMessage, userId: string) {
+export async function addToDb(entry: TelemetryMessage, userId: string, logEntry: boolean) {
     if (messageCache.has(entry.id)) {
         console.debug(`Skipping stale entry ${entry.id}`);
         return;
@@ -56,6 +61,14 @@ export async function addToDb(entry: TelemetryMessage, userId: string) {
 
     if (!entry.sessionId) {
         return;
+    }
+
+    if (logEntry) {
+        try {
+            await entriesCollection.insertOne(entry);
+        } catch (err) {
+            console.warn(err);
+        }
     }
 
     // Add user to DB if they don't already exist
@@ -111,7 +124,7 @@ export async function addToDb(entry: TelemetryMessage, userId: string) {
             console.warn(err);
         }
     } else {
-        LogMessage(entry);
+        PrintMessage(entry);
     }
 
     messageCache.set(entry.id, true);
