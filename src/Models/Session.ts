@@ -52,15 +52,14 @@ export class Session {
         }
 
         if (platform === Platform.Linux) {
-            // Pull out entries from /etc/os-release string, and trim quotation marks from any elemets
-            const nameRegex = /NAME=(?<name>.+?)\n/m;
-            const variantRegex = /ID_LIKE=(?<variant>.+?)\n/m;
-            const versionRegex = /VERSION_ID=(?<version>.+?)\n/m;
-            const quotationMarksRegex = /^"(.+(?="$))"$/;
+            // Pull out entries from /etc/os-release string, and trim quotation marks from any elements
+            const nameRegex = /NAME="?(.+?)"?\n/m;
+            const variantRegex = /ID_LIKE="?(.+?)"?\n/m;
+            const versionRegex = /VERSION_ID="?(.+?)"?\n/m;
             return {
-                distro: infoString.match(nameRegex)?.groups?.["name"]?.replace(quotationMarksRegex, "$1") ?? undefined,
-                variant: infoString.match(variantRegex)?.groups?.["variant"]?.replace(quotationMarksRegex, "$1") ?? undefined,
-                version: infoString.match(versionRegex)?.groups?.["version"]?.replace(quotationMarksRegex, "$1") ?? undefined
+                distro: infoString.match(nameRegex)?.groups?.[1] ?? undefined,
+                variant: infoString.match(variantRegex)?.groups?.[1] ?? undefined,
+                version: infoString.match(versionRegex)?.groups?.[1] ?? undefined
             };
         } else {
             const versionRegex = /ProductVersion:\s*(?:\\t)*(?<version>(?:\d+\.\d+\.\d+)|(?:\d+\.\d+)|(?:\d+))/;

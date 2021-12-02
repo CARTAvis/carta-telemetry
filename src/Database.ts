@@ -127,6 +127,4 @@ export async function addToDb(entry: TelemetryMessage, userId: string, logEntry:
     } else {
         PrintMessage(entry);
     }
-
-
 }
