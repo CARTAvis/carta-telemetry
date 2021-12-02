@@ -1,6 +1,6 @@
 {
     "name": "carta-telemetry",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "description": "Telemetry server for CARTA",
     "main": "dist/index.js",
     "bin": {

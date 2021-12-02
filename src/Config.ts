@@ -4,6 +4,7 @@ interface CommandLineOptions {
     [x: string]: unknown;
 
     verbose: boolean;
+    logOutput: boolean;
     port: number;
     dbUri: string;
     dbName: string;
@@ -20,6 +21,12 @@ export const config = yargs
             description: "Show verbose output",
             type: "boolean",
             alias: "v"
+        },
+        logOutput: {
+            description: "Store all incoming telemetry entries in the database as they arrive",
+            type: "boolean",
+            default: false,
+            alias: "l"
         },
         port: {
             description: "HTTP port to listen on",

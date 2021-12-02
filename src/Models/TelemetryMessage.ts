@@ -24,9 +24,12 @@ export interface TelemetryMessage {
     action: TelemetryAction;
     version: string;
     details?: any;
+    regionCode?: string;
+    countryCode?: string;
+    ipHash?: string;
 }
 
-export function LogMessage(message: TelemetryMessage) {
+export function PrintMessage(message: TelemetryMessage) {
     let messageString = `[${chalk.green(moment(message.timestamp))}]` + ` (v${chalk.italic(message.version)}) ${chalk.bold(message.action)}`;
 
     if (message.details) {
