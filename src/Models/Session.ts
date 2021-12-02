@@ -57,9 +57,9 @@ export class Session {
             const variantRegex = /ID_LIKE="?(.+?)"?\n/m;
             const versionRegex = /VERSION_ID="?(.+?)"?\n/m;
             return {
-                distro: infoString.match(nameRegex)?.groups?.[1] ?? undefined,
-                variant: infoString.match(variantRegex)?.groups?.[1] ?? undefined,
-                version: infoString.match(versionRegex)?.groups?.[1] ?? undefined
+                distro: infoString.match(nameRegex)?.[1] ?? undefined,
+                variant: infoString.match(variantRegex)?.[1] ?? undefined,
+                version: infoString.match(versionRegex)?.[1] ?? undefined
             };
         } else {
             const versionRegex = /ProductVersion:\s*(?:\\t)*(?<version>(?:\d+\.\d+\.\d+)|(?:\d+\.\d+)|(?:\d+))/;
