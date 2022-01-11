@@ -105,7 +105,7 @@ export async function addToDb(entry: TelemetryMessage, userId: string, logEntry:
         }
     } else if (entry.action === TelemetryAction.EndSession) {
         try {
-            const existingSession = (await sessionsCollection.findOne({id: entry.sessionId})) as Session;
+            const existingSession = (await sessionsCollection.findOne({id: entry.sessionId}) as unknown) as Session;
             if (!existingSession) {
                 console.warn(`Cannot find existing session ${entry.sessionId}`);
                 return;

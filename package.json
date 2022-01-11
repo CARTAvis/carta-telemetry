@@ -35,7 +35,7 @@
         "express-ipfilter": "^1.2.0",
         "geoip-lite": "^1.4.2",
         "jsonwebtoken": "^8.5.1",
-        "mnemonist": "^0.38.3",
+        "mnemonist": "^0.39.0",
         "moment": "^2.29.1",
         "mongodb": "^4.1.1",
         "uuid": "^8.3.2",
