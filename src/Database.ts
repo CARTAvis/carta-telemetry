@@ -30,20 +30,23 @@ let usersCollection: Collection;
 let sessionsCollection: Collection;
 let entriesCollection: Collection;
 
-export async function initDB() {
+export async function initDB(updateIndices: boolean = false) {
     try {
         const client = await MongoClient.connect(config.dbUri);
         const db = await client.db(config.dbName);
         usageDataCollection = await createOrGetCollection(db, "usage");
         usersCollection = await createOrGetCollection(db, "users");
         entriesCollection = await createOrGetCollection(db, "entries");
-        await updateIndex(usersCollection, "uuid");
         sessionsCollection = await createOrGetCollection(db, "sessions");
-        await updateIndex(sessionsCollection, "id");
-        await updateIndex(sessionsCollection, "userId", 1, false);
-        await updateIndex(entriesCollection, "id");
-        await updateIndex(entriesCollection, "userId", 1, false);
-        await updateIndex(entriesCollection, "ipHash", 1, false);
+
+        if (updateIndices) {
+            await updateIndex(usersCollection, "uuid");
+            await updateIndex(sessionsCollection, "id");
+            await updateIndex(sessionsCollection, "userId", 1, false);
+            await updateIndex(entriesCollection, "id");
+            await updateIndex(entriesCollection, "userId", 1, false);
+            await updateIndex(entriesCollection, "ipHash", 1, false);
+        }
 
         console.log(`Connected to MongoDB server ${config.dbUri} and database ${config.dbName}`);
     } catch (err) {
@@ -126,5 +129,16 @@ export async function addToDb(entry: TelemetryMessage, userId: string, logEntry:
         }
     } else {
         PrintMessage(entry);
+    }
+}
+
+export async function getUserMetrics() {
+    try {
+        const allUsers = await usersCollection.find().toArray();
+        const numUsers = allUsers.length;
+        const numOptedOutUsers = allUsers.filter(u => u.optOut).length;
+        console.log(`Of the ${numUsers} unique users, ${numOptedOutUsers} (${((100 * numOptedOutUsers) / numUsers).toFixed(2)}%) opted out of telemetry`);
+    } catch (err) {
+        console.error(err);
     }
 }

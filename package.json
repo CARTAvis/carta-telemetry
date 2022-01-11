@@ -1,13 +1,14 @@
 {
     "name": "carta-telemetry",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Telemetry server for CARTA",
     "main": "dist/index.js",
     "bin": {
-        "carta-controller": "dist/carta-telemetry"
+        "carta-telemetry": "dist/carta-telemetry"
     },
     "scripts": {
         "start": "npx ts-node src/index.ts",
+        "metrics": "npx ts-node src/Metrics.ts",
         "build": "npx tsc",
         "test": "npx ts-node src/index.ts --test",
         "reformat": "npx prettier --write ./src",
