@@ -179,7 +179,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 async function init() {
-    await initDB();
+    await initDB(true);
     const expressServer = http.createServer(app);
     expressServer.listen(config.port);
 }

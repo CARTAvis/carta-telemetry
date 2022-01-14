@@ -1,13 +1,14 @@
 {
     "name": "carta-telemetry",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Telemetry server for CARTA",
     "main": "dist/index.js",
     "bin": {
-        "carta-controller": "dist/carta-telemetry"
+        "carta-telemetry": "dist/carta-telemetry"
     },
     "scripts": {
         "start": "npx ts-node src/index.ts",
+        "metrics": "npx ts-node src/Metrics.ts",
         "build": "npx tsc",
         "test": "npx ts-node src/index.ts --test",
         "reformat": "npx prettier --write ./src",
@@ -34,7 +35,7 @@
         "express-ipfilter": "^1.2.0",
         "geoip-lite": "^1.4.2",
         "jsonwebtoken": "^8.5.1",
-        "mnemonist": "^0.38.3",
+        "mnemonist": "^0.39.0",
         "moment": "^2.29.1",
         "mongodb": "^4.1.1",
         "uuid": "^8.3.2",
