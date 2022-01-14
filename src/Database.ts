@@ -105,7 +105,7 @@ export async function addToDb(entry: TelemetryMessage, userId: string, logEntry:
         }
     } else if (entry.action === TelemetryAction.EndSession) {
         try {
-            const existingSession = (await sessionsCollection.findOne({id: entry.sessionId}) as unknown) as Session;
+            const existingSession = (await sessionsCollection.findOne({id: entry.sessionId})) as unknown as Session;
             if (!existingSession) {
                 console.warn(`Cannot find existing session ${entry.sessionId}`);
                 return;
@@ -152,8 +152,6 @@ export async function getFileLoadMetrics() {
             // Stokes
             const numStokesCubes = fileOpenDetails.filter(d => d.stokes > 1).length;
             console.log(`Of the ${numFilesOpened} files opened, ${numStokesCubes} (${((100 * numStokesCubes) / numFilesOpened).toFixed(2)}%) were Stokes cubes`);
-
-            const numVoxelsCube = fileOpenDetails.map(d => d.width * d.height * d.depth);
 
             // 3D cubes
             const entries3d = fileOpenDetails.filter(d => d.depth > 1);
