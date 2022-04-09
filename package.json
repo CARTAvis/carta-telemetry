@@ -36,7 +36,7 @@
         "geoip-lite": "^1.4.2",
         "jsonwebtoken": "^8.5.1",
         "mnemonist": "^0.39.0",
-        "moment": "^2.29.1",
+        "moment": "^2.29.2",
         "mongodb": "^4.1.1",
         "uuid": "^8.3.2",
         "yargs": "^17.1.1"
