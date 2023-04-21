@@ -25,6 +25,28 @@ async function updateIndex(collection: Collection, key: string, direction: Index
     }
 }
 
+export function minMax(valArray: number[]) {
+    if (!valArray?.length) {
+        return [NaN, NaN];
+    }
+
+    let minVal = valArray[0];
+    let maxVal = valArray[0];
+    const N = valArray.length;
+
+    for (let i = 0; i < N; i++) {
+        const val = valArray[i];
+        if (isFinite(val)) {
+            if (val > maxVal) {
+                maxVal = val;
+            } else if (val < minVal) {
+                minVal = val;
+            }
+        }
+    }
+    return [minVal, maxVal];
+}
+
 let usageDataCollection: Collection;
 let usersCollection: Collection;
 let sessionsCollection: Collection;
@@ -159,8 +181,7 @@ export async function getFileLoadMetrics() {
             console.log(`Of the ${numFilesOpened} files opened, ${num3dCubes} (${((100 * num3dCubes) / numFilesOpened).toFixed(2)}%) were 3D cubes`);
             if (num3dCubes) {
                 const channelSize = entries3d.map(d => d.depth);
-                const minChannels = Math.min(...channelSize);
-                const maxChannels = Math.max(...channelSize);
+                const [minChannels, maxChannels] = minMax(channelSize);
                 const avgChannels = channelSize.reduce((a, b) => a + b) / num3dCubes;
                 console.log(`Channel sizes range: [${minChannels}, ${maxChannels}]. Average: ${avgChannels.toFixed(1)}`);
             }
@@ -168,8 +189,9 @@ export async function getFileLoadMetrics() {
             // 2D slice sizes
             const numPixelsChannel = fileOpenDetails.map(d => d.width * d.height);
             // Slice sizes in megapixels
-            const minSliceSize = Math.min(...numPixelsChannel) / 1.0e6;
-            const maxSliceSize = Math.max(...numPixelsChannel) / 1.0e6;
+            let [minSliceSize, maxSliceSize] = minMax(numPixelsChannel);
+            minSliceSize /= 1e6;
+            maxSliceSize /= 1e6;
             const avgSliceSize = numPixelsChannel.reduce((a, b) => a + b) / numFilesOpened / 1.0e6;
             const avgDims = Math.sqrt(avgSliceSize) * 1.0e3;
             const minDims = Math.sqrt(minSliceSize) * 1.0e3;
@@ -181,8 +203,9 @@ export async function getFileLoadMetrics() {
             const fullCubeSize = fileOpenDetails.map(d => d.width * d.height * d.depth * d.stokes);
 
             // Cube sizes in MB, assuming 32-bit data type
-            const minCubeSize = (4 * Math.min(...fullCubeSize)) / 1.0e6;
-            const maxCubeSize = (4 * Math.max(...fullCubeSize)) / 1.0e6;
+            const [minVal, maxVal] = minMax(fullCubeSize);
+            const minCubeSize = 4 * minVal / 1.0e6;
+            const maxCubeSize = 4 * maxVal / 1.0e6;
             const avgCubeSize = (4 * fullCubeSize.reduce((a, b) => a + b)) / numFilesOpened / 1.0e6;
             console.log(`Cube size range (MB): [${minCubeSize.toFixed(2)}, ${maxCubeSize.toFixed(2)}]. Average: ${avgCubeSize.toFixed(2)}`);
         }
