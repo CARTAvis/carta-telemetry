@@ -47,6 +47,33 @@ export function minMax(valArray: number[]) {
     return [minVal, maxVal];
 }
 
+export function histogram(valArray: number[], minVal: number, maxVal: number, numBins: number) {
+    const numVals = valArray?.length;
+
+    if (!numVals || !isFinite(minVal) || !isFinite(maxVal) || !isFinite(numBins) || minVal >= maxVal || numBins <= 0) {
+        return {count: [], labels: []};
+    }
+
+    // generates a histogram from the array
+    const binSize = (maxVal - minVal) / numBins;
+    const count = new Array<number>(numBins).fill(0);
+    const labels = new Array<number>(numBins).fill(0);
+    for (let i = 0; i < numBins; i++) {
+        labels[i] = minVal + i * binSize;
+    }
+
+    for (let i = 0; i < numVals; i++) {
+        const val = valArray[i];
+        if (isFinite(val)) {
+            let binIndex = Math.floor((val - minVal) / binSize);
+            binIndex = Math.max(0, Math.min(binIndex, numBins - 1));
+            count[binIndex]++;
+        }
+    }
+
+    return {count, labels};
+}
+
 let usageDataCollection: Collection;
 let usersCollection: Collection;
 let sessionsCollection: Collection;
@@ -184,6 +211,9 @@ export async function getFileLoadMetrics() {
                 const [minChannels, maxChannels] = minMax(channelSize);
                 const avgChannels = channelSize.reduce((a, b) => a + b) / num3dCubes;
                 console.log(`Channel sizes range: [${minChannels}, ${maxChannels}]. Average: ${avgChannels.toFixed(1)}`);
+                const {count} = histogram(channelSize, 0, maxChannels, 1000);
+                console.log(`Channel size histogram: ${count.join(" ")}`);
+
             }
 
             // 2D slice sizes
@@ -197,6 +227,9 @@ export async function getFileLoadMetrics() {
             const minDims = Math.sqrt(minSliceSize) * 1.0e3;
             const maxDims = Math.sqrt(maxSliceSize) * 1.0e3;
             console.log(`Channel slice sizes range (megapixels): [${minSliceSize.toFixed(2)}, ${maxSliceSize.toFixed(2)}]. Average: ${avgSliceSize.toFixed(2)}`);
+
+            const {count: sliceSizeCount} = histogram(numPixelsChannel, 0, maxSliceSize * 1e6, 1000);
+            console.log(`Channel slice size histogram: ${sliceSizeCount.join(" ")}`);
             console.log(`Channel slice sizes range (square dims): [${minDims.toFixed(0)} * ${minDims.toFixed(0)}, ${maxDims.toFixed(0)} * ${maxDims.toFixed(0)}]. Average: ${avgDims.toFixed(0)} * ${avgDims.toFixed(0)}`);
 
             // Full cube size in MB
@@ -207,7 +240,9 @@ export async function getFileLoadMetrics() {
             const minCubeSize = 4 * minVal / 1.0e6;
             const maxCubeSize = 4 * maxVal / 1.0e6;
             const avgCubeSize = (4 * fullCubeSize.reduce((a, b) => a + b)) / numFilesOpened / 1.0e6;
-            console.log(`Cube size range (MB): [${minCubeSize.toFixed(2)}, ${maxCubeSize.toFixed(2)}]. Average: ${avgCubeSize.toFixed(2)}`);
+            const {count: cubeSizeCount} = histogram(fullCubeSize, 0, maxVal, 1000);
+            console.log(`Channel cube size histogram: ${cubeSizeCount.join(" ")}`);
+            console.log(`Cube size range (MB): [${minCubeSize.toFixed(10)}, ${maxCubeSize.toFixed(10)}]. Average: ${avgCubeSize.toFixed(2)}`);
         }
     } catch (err) {
         console.error(err);
